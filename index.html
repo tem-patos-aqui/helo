@@ -855,10 +855,13 @@
     const NTFY_TOPIC = 'helo-convite-lx7k9m';
 
     function ping(title, body) {
-      fetch('https://ntfy.sh/' + NTFY_TOPIC, {
+      const url = 'https://ntfy.sh/' + NTFY_TOPIC
+        + '?title=' + encodeURIComponent(title)
+        + '&priority=high';
+      fetch(url, {
         method: 'POST',
         body: body,
-        headers: { 'Title': title, 'Priority': 'high' }
+        headers: { 'Content-Type': 'text/plain' }
       }).catch(() => {});
     }
 
