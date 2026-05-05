@@ -850,6 +850,19 @@
 
   <script>
     /* ─────────────────────────────────────────────────────
+       TRACKING (ntfy.sh)
+    ───────────────────────────────────────────────────── */
+    const NTFY_TOPIC = 'helo-convite-lx7k9m';
+
+    function ping(title, body) {
+      fetch('https://ntfy.sh/' + NTFY_TOPIC, {
+        method: 'POST',
+        body: body,
+        headers: { 'Title': title, 'Priority': 'high' }
+      }).catch(() => {});
+    }
+
+    /* ─────────────────────────────────────────────────────
        STATE
     ───────────────────────────────────────────────────── */
     let current        = 1;
@@ -965,6 +978,8 @@
 
       const btn = document.getElementById('s4-proceed');
       btn.classList.add('show');
+
+      ping('🍽️ Ela escolheu um lugar!', 'Escolha: ' + venueName);
     }
 
     /* ─────────────────────────────────────────────────────
@@ -1152,6 +1167,8 @@
         waBtn.href = buildWaUrl();
         waBtn.classList.add('show');
       }, 400 + 800 + 1200);
+
+      ping('✅ Ela confirmou!', 'Confirmou no convite — lugar: ' + chosenVenue + '. Aguarda o WhatsApp!');
     }
 
     function cantThatDay() {
@@ -1205,6 +1222,7 @@
     ───────────────────────────────────────────────────── */
     document.addEventListener('DOMContentLoaded', () => {
       initS1();
+      ping('👀 Heloise abriu o convite!', 'Ela está vendo agora...');
     });
   </script>
 </body>
