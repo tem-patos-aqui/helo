@@ -1226,6 +1226,11 @@
     document.addEventListener('DOMContentLoaded', () => {
       initS1();
       ping('👀 Heloise abriu o convite!', 'Ela está vendo agora...');
+
+      // Inicia música no primeiro toque/clique — máximo permitido pelo browser
+      const unlock = () => { startMusic(); document.removeEventListener('touchstart', unlock); document.removeEventListener('mousedown', unlock); };
+      document.addEventListener('touchstart', unlock, { passive: true });
+      document.addEventListener('mousedown', unlock);
     });
   </script>
 </body>
