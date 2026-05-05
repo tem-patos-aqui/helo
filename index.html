@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Heloise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─────────────────────────────────────────────────────
+       RESET & VARS
+    ───────────────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --black:     #0f0f0f;
+      --white:     #ffffff;
+      --beige:     #f5f5dc;
+      --beige-dim: rgba(245, 245, 220, 0.5);
+      --gray:      #777777;
+      --gray-dim:  #444444;
+      --speed:     0.5s;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--black);
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+    }
+
+    /* subtle grain overlay */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      background-size: 300px;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.6;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SCREEN SYSTEM
+    ───────────────────────────────────────────────────── */
+    .screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(22px);
+      transition: opacity var(--speed) cubic-bezier(0.4, 0, 0.2, 1),
+                  transform var(--speed) cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 10;
+      overflow-y: auto; overflow-x: hidden;
+    }
+    .screen.active {
+      opacity: 1; pointer-events: all; transform: translateY(0);
+    }
+    .screen.leaving {
+      opacity: 0; transform: translateY(-18px); pointer-events: none;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SHARED TYPOGRAPHY
+    ───────────────────────────────────────────────────── */
+    .f-serif     { font-family: 'Playfair Display', serif; }
+    .f-sans      { font-family: 'Inter', sans-serif; }
+    .f-italic    { font-style: italic; }
+    .c-beige     { color: var(--beige); }
+    .c-gray      { color: var(--gray); }
+    .c-white     { color: var(--white); }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+
+    /* ─────────────────────────────────────────────────────
+       BUTTON
+    ───────────────────────────────────────────────────── */
+    .btn {
+      display: inline-block;
+      padding: 0.8rem 2.2rem;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: transparent;
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.3s ease, border-color 0.3s ease, transform 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn span { position: relative; z-index: 1; }
+    .btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--beige);
+      transform: translateX(-101%);
+      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn:hover { color: var(--black); border-color: var(--beige); }
+    .btn:hover::before { transform: translateX(0); }
+    .btn:active { transform: scale(0.96); }
+
+    .btn-ghost {
+      border-color: rgba(255,255,255,0.06);
+      color: var(--gray-dim);
+    }
+    .btn-ghost:hover { color: var(--gray); }
+    .btn-ghost::before { background: rgba(255,255,255,0.05); }
+
+    .btn-group {
+      display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center;
+      margin-top: 2.5rem;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       DECORATIVE DIVIDER
+    ───────────────────────────────────────────────────── */
+    .deco {
+      width: 48px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,245,220,0.35), transparent);
+      margin: 1.6rem auto;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SCREEN 1 — ABERTURA
+    ───────────────────────────────────────────────────── */
+    #s1 { gap: 0; }
+
+    #s1 .name {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(3.2rem, 14vw, 6rem);
+      font-weight: 400;
+      letter-spacing: -0.025em;
+      color: var(--beige);
+      line-height: 0.95;
+      text-align: center;
+      display: block;
+    }
+    #s1 .eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--gray-dim);
+      text-align: center;
+      display: block;
+      margin-top: 0.6rem;
+      margin-bottom: 4.5rem;
+    }
+    #s1 .line {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.1rem, 4.5vw, 1.65rem);
+      line-height: 1.45;
+      text-align: center;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    #s1 .line.dim { color: var(--gray); font-style: italic; }
+    #s1 .line.accent {
+      color: var(--beige);
+      font-size: clamp(1.3rem, 5.5vw, 2rem);
+      margin-top: 0.6rem;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SCREEN 2 — STORYTELLING
+    ───────────────────────────────────────────────────── */
+    #s2 { max-width: 540px; margin: 0 auto; }
+
+    .timeline { width: 100%; text-align: center; }
+
+    .tl-item { margin-bottom: 0.2rem; }
+    .tl-item .big {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.35rem, 5.5vw, 1.9rem);
+      color: var(--white);
+      display: block;
+      line-height: 1.3;
+    }
+    .tl-item .note {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.75rem;
+      color: var(--gray-dim);
+      letter-spacing: 0.04em;
+      display: block;
+      margin-top: 0.15rem;
+    }
+
+    .tl-sep {
+      width: 1px; height: 2.2rem;
+      background: linear-gradient(to bottom, transparent, var(--gray-dim), transparent);
+      margin: 0.8rem auto;
+    }
+
+    .tl-close {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1rem, 4vw, 1.35rem);
+      color: var(--beige);
+      font-style: italic;
+      margin-top: 1.8rem;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SCREEN 3 — DUCKS
+    ───────────────────────────────────────────────────── */
+    #s3 { z-index: 10; }
+
+    #s3-intro { text-align: center; max-width: 500px; }
+    #s3-intro .pre {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1rem, 4vw, 1.4rem);
+      color: var(--gray);
+      font-style: italic;
+      margin-bottom: 1.2rem;
+      display: block;
+    }
+    #s3-intro .main {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.2rem, 5vw, 1.75rem);
+      color: var(--white);
+      display: block;
+      margin-bottom: 0;
+    }
+
+    /* Duck layer */
+    #duck-layer {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+    .dk {
+      position: absolute;
+      user-select: none;
+      will-change: transform, opacity;
+    }
+
+    @keyframes dk-fall {
+      0%   { opacity: 0; transform: translateY(-80px) rotate(var(--r)); }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { opacity: 0; transform: translateY(108vh) rotate(calc(var(--r) + 400deg)); }
+    }
+    @keyframes dk-left {
+      0%   { opacity: 0; transform: translateX(-100px) rotate(var(--r)); }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { opacity: 0; transform: translateX(108vw) rotate(calc(var(--r) + 200deg)); }
+    }
+    @keyframes dk-right {
+      0%   { opacity: 0; transform: translateX(100px) rotate(var(--r)); }
+      8%   { opacity: 1; }
+      92%  { opacity: 1; }
+      100% { opacity: 0; transform: translateX(-108vw) rotate(calc(var(--r) - 200deg)); }
+    }
+    @keyframes dk-float {
+      0%, 100% { transform: translateY(0px) rotate(var(--r)); }
+      40%      { transform: translateY(-18px) rotate(calc(var(--r) + 12deg)); }
+      70%      { transform: translateY(-8px) rotate(calc(var(--r) - 6deg)); }
+    }
+    @keyframes dk-spin {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
+      15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.2) rotate(180deg); }
+      85%  { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(700deg); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(900deg); }
+    }
+    @keyframes dk-drift {
+      0%   { transform: translate(0px, 0px) rotate(var(--r)); }
+      20%  { transform: translate(28px, -22px) rotate(calc(var(--r) + 14deg)); }
+      45%  { transform: translate(-18px, -44px) rotate(calc(var(--r) - 9deg)); }
+      70%  { transform: translate(22px, -30px) rotate(calc(var(--r) + 20deg)); }
+      100% { transform: translate(0px, 0px) rotate(var(--r)); }
+    }
+
+    /* Chaos overlay text */
+    #chaos-overlay {
+      position: relative; z-index: 30;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      pointer-events: none;
+      padding: 1.5rem;
+    }
+    #chaos-overlay.in {
+      opacity: 1; transform: translateY(0); pointer-events: all;
+    }
+    #chaos-overlay .chaos-headline {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.5rem, 6vw, 2.6rem);
+      color: var(--white);
+      text-shadow: 0 2px 40px rgba(0,0,0,0.9), 0 0 80px rgba(0,0,0,0.7);
+      line-height: 1.2;
+    }
+    #chaos-overlay .chaos-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.8rem, 2.8vw, 0.95rem);
+      color: var(--gray);
+      margin-top: 0.6rem;
+      text-shadow: 0 0 20px rgba(0,0,0,0.95);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SCREEN 4 — CARDS
+    ───────────────────────────────────────────────────── */
+    #s4 {
+      justify-content: flex-start;
+      padding-top: 2.5rem;
+      padding-bottom: 3rem;
+    }
+
+    #s4 .s4-header {
+      text-align: center;
+      margin: 0 auto 2rem;
+      width: 100%;
+      max-width: 480px;
+    }
+    #s4 .s4-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 7vw, 2.8rem);
+      font-weight: 400;
+      color: var(--beige);
+      letter-spacing: -0.01em;
+    }
+    #s4 .s4-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.78rem, 2.8vw, 0.9rem);
+      color: var(--gray);
+      font-weight: 300;
+      line-height: 1.75;
+      margin-top: 0.75rem;
+      max-width: 100%;
+      text-align: center;
+    }
+
+    .cards { display: flex; flex-direction: column; gap: 1.1rem; width: 100%; max-width: 480px; }
+
+    .card {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.075);
+      border-radius: 16px;
+      padding: 0;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+      transition:
+        border-color 0.3s ease,
+        background 0.3s ease,
+        transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+        box-shadow 0.35s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .card::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(245,245,220,0.05), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      border-radius: 16px;
+    }
+    .card:hover, .card:focus-visible {
+      border-color: rgba(245,245,220,0.3);
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 20px 55px rgba(0,0,0,0.55);
+    }
+    .card:hover::after { opacity: 1; }
+    .card.chosen {
+      border-color: var(--beige);
+      background: rgba(245,245,220,0.06);
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 20px 55px rgba(0,0,0,0.5), 0 0 0 1px var(--beige);
+    }
+    .card:active { transform: scale(0.975); }
+
+    /* card image */
+    .card-img {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      display: block;
+      border-radius: 16px 16px 0 0;
+      background: #1a1a1a;
+    }
+
+    /* card text area */
+    .card-body {
+      padding: 1.2rem 1.5rem 1.5rem;
+      position: relative;
+    }
+
+    .card-icon { font-size: 1.6rem; display: block; margin-bottom: 0.5rem; }
+    .card-name {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.1rem, 4.5vw, 1.35rem);
+      color: var(--white);
+      display: block;
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+    .card-desc {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      color: rgba(119,119,119,0.85);
+      font-weight: 300;
+      line-height: 1.65;
+    }
+
+    /* checkmark badge */
+    .card-check {
+      position: absolute; top: 1rem; right: 1rem;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--beige);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0;
+      transform: scale(0) rotate(-90deg);
+      transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .card-check::after { content: '✓'; font-size: 11px; color: var(--black); font-weight: 700; }
+    .card.chosen .card-check { opacity: 1; transform: scale(1) rotate(0deg); }
+
+    /* proceed button — primary action, filled */
+    #s4-proceed {
+      margin-top: 2rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform: translateY(6px) scale(0.97);
+      /* filled beige style */
+      background: var(--beige);
+      color: var(--black);
+      border-color: var(--beige);
+      padding: 1rem 3.2rem;
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+    }
+    #s4-proceed::before { background: #e8e8c0; } /* slightly darker beige on hover */
+    #s4-proceed:hover { color: var(--black); border-color: #e8e8c0; }
+    #s4-proceed.show {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0) scale(1);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       SCREEN 5 — FECHAMENTO
+    ───────────────────────────────────────────────────── */
+    #s5 { max-width: 580px; margin: 0 auto; text-align: center; }
+
+    #s5 .intro-line {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1rem, 4vw, 1.35rem);
+      color: var(--gray);
+      font-style: italic;
+      display: block;
+    }
+    #s5 .then-line {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+      color: var(--white);
+      display: block;
+      margin-top: 0.3rem;
+    }
+    #s5 .big-date {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.4rem, 9vw, 4rem);
+      color: var(--beige);
+      letter-spacing: -0.025em;
+      line-height: 1;
+      display: block;
+      margin: 0.2rem 0;
+    }
+    #s5 .venue-line {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.72rem, 2.5vw, 0.85rem);
+      color: var(--gray-dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      display: block;
+    }
+    #s5 .confirm-note {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.82rem, 3vw, 1rem);
+      color: var(--gray);
+      font-weight: 300;
+      margin-top: 0.5rem;
+      display: block;
+    }
+
+    /* accepted state */
+    #s5 .accepted-msg {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.1rem, 4vw, 1.5rem);
+      color: var(--beige);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      display: block;
+      margin-top: 1.5rem;
+      font-style: italic;
+    }
+    #s5 .accepted-msg.in { opacity: 1; transform: translateY(0); }
+
+    #s5 .accepted-lia {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(0.78rem, 2.8vw, 0.92rem);
+      color: rgba(119,119,119,0.75);
+      font-weight: 300;
+      font-style: italic;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+      display: block;
+      margin-top: 0.55rem;
+      letter-spacing: 0.01em;
+    }
+    #s5 .accepted-lia.in { opacity: 1; transform: translateY(0); }
+
+    /* "não pode nesse dia?" subtle link */
+    #cant-that-day {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.74rem;
+      color: var(--gray);
+      opacity: 0.6;
+      cursor: pointer;
+      margin-top: 1.2rem;
+      letter-spacing: 0.04em;
+      transition: opacity 0.25s ease;
+      -webkit-tap-highlight-color: transparent;
+      display: block;
+    }
+    #cant-that-day:hover { opacity: 0.8; }
+
+    /* intermediate duck moment text */
+    #duck-moment {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem;
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+      text-align: center;
+    }
+    #duck-moment.in { opacity: 1; transform: translateY(0); }
+    #duck-moment p {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1rem, 4.5vw, 1.55rem);
+      color: rgba(255,255,255,0.92);
+      text-shadow: 0 0 25px rgba(0,0,0,0.98), 0 0 60px rgba(0,0,0,0.85);
+      font-style: italic;
+      line-height: 1.4;
+      max-width: 460px;
+    }
+
+    /* boss duck animation */
+    @keyframes dk-boss {
+      0%   { opacity: 0; transform: translateX(-150px) rotate(-4deg) scale(1); }
+      6%   { opacity: 1; }
+      50%  { transform: translateX(50vw) rotate(2deg) scale(1.05); }
+      94%  { opacity: 1; }
+      100% { opacity: 0; transform: translateX(110vw) rotate(-2deg) scale(1); }
+    }
+
+    /* ─────────────────────────────────────────────────────
+       WHATSAPP BUTTON
+    ───────────────────────────────────────────────────── */
+    .btn-wa {
+      background: var(--beige);
+      color: var(--black);
+      border-color: var(--beige);
+      padding: 1rem 2.8rem;
+      font-size: 0.82rem;
+      letter-spacing: 0.13em;
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(245,245,220,0.12);
+      transition: color 0.3s ease, border-color 0.3s ease,
+                  transform 0.25s cubic-bezier(0.23, 1, 0.32, 1),
+                  box-shadow 0.3s ease;
+    }
+    .btn-wa::before { background: #deded8; }
+    .btn-wa:hover {
+      color: var(--black);
+      border-color: var(--beige);
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 10px 36px rgba(245,245,220,0.22), 0 0 0 1px rgba(245,245,220,0.2);
+    }
+    .btn-wa:active { transform: scale(0.96); }
+
+    /* WA final button — hidden until sequence completes */
+    #btn-wa-final {
+      display: inline-block;
+      margin-top: 1.8rem;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    #btn-wa-final.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+
+    /* confirm button fade-out */
+    #btn-confirm {
+      transition: opacity 0.35s ease, transform 0.35s ease,
+                  color 0.3s ease, border-color 0.3s ease;
+    }
+    #btn-confirm.hiding {
+      opacity: 0;
+      transform: translateY(-8px);
+      pointer-events: none;
+    }
+
+    /* ─────────────────────────────────────────────────────
+       MUTE BUTTON
+    ───────────────────────────────────────────────────── */
+    #mute-btn {
+      position: fixed;
+      top: 1.1rem; right: 1.1rem;
+      z-index: 500;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 50%;
+      width: 38px; height: 38px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease, background 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #mute-btn.visible { opacity: 1; pointer-events: all; }
+    #mute-btn:hover { background: rgba(255,255,255,0.1); }
+
+    /* ─────────────────────────────────────────────────────
+       MOBILE
+    ───────────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .screen { padding: 1.5rem 1.1rem; }
+      #s4 { padding-top: 2rem; padding-bottom: 2.5rem; }
+      .btn { padding: 0.9rem 2rem; min-height: 48px; }
+      .btn-group { flex-direction: column; align-items: center; }
+      .btn-group .btn { width: 100%; max-width: 320px; text-align: center; }
+      .card-img { height: 160px; }
+      .cards { gap: 0.9rem; }
+    }
+
+    ::-webkit-scrollbar { display: none; }
+    * { scrollbar-width: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Background music — arquivo local em assets/music.mp3 -->
+  <audio id="bg-music" loop preload="none">
+    <source src="assets/music.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Mute toggle (aparece após música iniciar) -->
+  <button id="mute-btn" onclick="toggleMute()" title="Silenciar / ativar">🔊</button>
+
+  <!-- Shared duck layer (rendered on top of everything) -->
+  <div id="duck-layer"></div>
+
+  <!-- Intermediate duck moment text (shown at 2s during duck chaos) -->
+  <div id="duck-moment">
+    <p>isso aqui claramente não é um ambiente controlado</p>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SCREEN 1 — ABERTURA
+  ═══════════════════════════════════════════════════ -->
+  <div id="s1" class="screen active">
+    <span class="name reveal">Heloise,</span>
+    <span class="eyebrow reveal">uma mensagem importante</span>
+
+    <span class="line reveal">preciso ser direto… mas prometo que vale a pena&nbsp;😌</span>
+
+    <div class="deco reveal"></div>
+
+    <span class="line dim reveal">Você disse que seria uma gata…</span>
+    <span class="line dim reveal">mas isso você já é</span>
+    <span class="line reveal">então tive que pensar em algo melhor</span>
+
+    <div class="deco reveal"></div>
+
+    <span class="line reveal">Então pensei em algo melhor que uma cantada.</span>
+    <span class="line accent reveal">um convite diferente.</span>
+
+    <button class="btn reveal" style="margin-top:2.5rem" onclick="startMusic(); go(2)"><span>continuar</span></button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SCREEN 2 — STORYTELLING
+  ═══════════════════════════════════════════════════ -->
+  <div id="s2" class="screen">
+    <div class="timeline">
+      <div class="tl-item reveal">
+        <span class="big">A gente deu match</span>
+      </div>
+
+      <div class="tl-sep reveal"></div>
+
+      <div class="tl-item reveal">
+        <span class="big">Conversou bem</span>
+        <span class="note">surpreendentemente bem, aliás</span>
+      </div>
+
+      <div class="tl-sep reveal"></div>
+
+      <div class="tl-item reveal">
+        <span class="big">Sumiu por uns dias</span>
+        <span class="note">suspeito&nbsp;🤨, vou fingir que não reparei</span>
+      </div>
+
+      <div class="tl-sep reveal"></div>
+
+      <div class="tl-item reveal">
+        <span class="big c-beige f-italic">Mas claramente isso aqui não acabou direito</span>
+      </div>
+
+      <div class="tl-close reveal">…e a gente sabe disso.</div>
+
+      <button class="btn reveal" id="s2-btn" style="margin-top:2.5rem" onclick="go(3)"><span>concordo</span></button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SCREEN 3 — VIRADA + PATOS
+  ═══════════════════════════════════════════════════ -->
+  <div id="s3" class="screen">
+    <!-- Intro text (shown first) -->
+    <div id="s3-intro">
+      <span class="pre reveal">Era pra ser só um convite simples…</span>
+      <div class="deco reveal"></div>
+      <span class="main reveal">mas eu trabalho num lugar onde isso acontece:</span>
+      <button class="btn reveal" id="duck-btn" style="margin-top:2rem" onclick="fireDucks()"><span>ver o que acontece</span></button>
+    </div>
+
+    <!-- Chaos overlay (shown after ducks) -->
+    <div id="chaos-overlay">
+      <p class="chaos-headline">claramente saiu do controle</p>
+      <p class="chaos-sub">então vamos fazer direito</p>
+      <button class="btn" style="margin-top:2rem" onclick="go(4)"><span>ok, você chamou minha atenção</span></button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SCREEN 4 — ESCOLHA DO DATE
+  ═══════════════════════════════════════════════════ -->
+  <div id="s4" class="screen">
+    <div class="s4-header reveal">
+      <h2 class="s4-title">Escolha nosso date</h2>
+      <p class="s4-sub">
+        Montei 3 opções em Itatiba com consultoria de um especialista local
+        (meu chefe rico&nbsp;😌) — escolha com sabedoria:
+      </p>
+    </div>
+
+    <div class="cards">
+      <div class="card reveal" onclick="pickCard(this,'Tempo di Mangiare')">
+        <img class="card-img" src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80" alt="Tempo di Mangiare" loading="lazy">
+        <div class="card-body">
+          <div class="card-check"></div>
+          <span class="card-icon">🍝</span>
+          <span class="card-name">Tempo di Mangiare</span>
+          <p class="card-desc">jantar bonito + clima bom + eu tentando ser elegante</p>
+        </div>
+      </div>
+
+      <div class="card reveal" onclick="pickCard(this,'Scarpetta Cucina')">
+        <img class="card-img" src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80" alt="Scarpetta Cucina" loading="lazy">
+        <div class="card-body">
+          <div class="card-check"></div>
+          <span class="card-icon">🍷</span>
+          <span class="card-name">Scarpetta Cucina</span>
+          <p class="card-desc">experiência mais refinada + conversa perigosa de boa</p>
+        </div>
+      </div>
+
+      <div class="card reveal" onclick="pickCard(this,'Freising Bier')">
+        <img class="card-img" src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=800&q=80" alt="Freising Bier" loading="lazy">
+        <div class="card-body">
+          <div class="card-check"></div>
+          <span class="card-icon">🍺</span>
+          <span class="card-name">Freising Bier</span>
+          <p class="card-desc">leve, divertido e com altas chances de risada</p>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" id="s4-proceed" onclick="go(5)"><span>esse aqui</span></button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SCREEN 5 — FECHAMENTO
+  ═══════════════════════════════════════════════════ -->
+  <div id="s5" class="screen">
+    <span class="intro-line reveal">Excelente escolha. Você tem bom gosto&nbsp;😌</span>
+    <div class="deco reveal"></div>
+    <span class="then-line reveal">então fechamos assim:</span>
+
+    <span class="big-date reveal">sexta-feira, 08/05</span>
+
+    <span class="venue-line reveal" id="s5-venue">—</span>
+
+    <div class="deco reveal"></div>
+
+    <span class="confirm-note reveal">agora só falta você confirmar… e aparecer&nbsp;😌</span>
+
+    <span class="accepted-msg" id="accepted-msg">Boa escolha. Eu já imaginava&nbsp;😌</span>
+    <span class="accepted-lia" id="accepted-lia">aí já vira uma ótima história pra você contar pra Lia um dia&nbsp;😌</span>
+
+    <!-- Aparece após os textos de validação -->
+    <a id="btn-wa-final"
+       class="btn btn-wa"
+       href="https://wa.me/5519981898844?text=aceito%20sair%20com%20você%20😌%20sexta%2008%2F05%20tá%20perfeito"
+       target="_blank"
+       rel="noopener">
+      <span>confirmar no WhatsApp&nbsp;💬</span>
+    </a>
+
+    <div class="btn-group">
+      <button class="btn reveal" id="btn-confirm" onclick="handleConfirm()"><span>confirmar&nbsp;😌</span></button>
+      <button class="btn btn-ghost reveal" onclick="watchDucksAgain()"><span>quero ver os patos de novo&nbsp;🦆</span></button>
+    </div>
+    <span id="cant-that-day" onclick="cantThatDay()">não pode nesse dia? a gente resolve&nbsp;😌</span>
+  </div>
+
+
+  <script>
+    /* ─────────────────────────────────────────────────────
+       STATE
+    ───────────────────────────────────────────────────── */
+    let current        = 1;
+    let chosenVenue    = '';
+    let ducksRunning   = false;
+    let duckInterval   = null;
+    const MAX_DUCKS    = 120;
+
+    /* ─────────────────────────────────────────────────────
+       SCREEN TRANSITIONS
+    ───────────────────────────────────────────────────── */
+    function go(n) {
+      if (n === current) return;
+      // Clear ducks whenever leaving screen 3
+      if (current === 3) stopDucks();
+      const old = document.getElementById('s' + current);
+      const nxt = document.getElementById('s' + n);
+
+      old.classList.add('leaving');
+
+      setTimeout(() => {
+        old.classList.remove('active', 'leaving');
+        // .screen CSS already starts at opacity:0 translateY(22px),
+        // so adding .active triggers the CSS transition naturally.
+        nxt.classList.add('active');
+        current = n;
+        initScreen(n);
+      }, 420);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       PER-SCREEN INIT
+    ───────────────────────────────────────────────────── */
+    function initScreen(n) {
+      const fns = { 1: initS1, 2: initS2, 3: initS3, 4: initS4, 5: initS5 };
+      if (fns[n]) fns[n]();
+    }
+
+    /* generic stagger: reveal each .reveal inside selector */
+    function staggerReveal(selector, baseDelay, step) {
+      const els = document.querySelectorAll(selector + ' .reveal');
+      els.forEach((el, i) => {
+        el.classList.remove('in');
+        void el.offsetWidth; // reflow to allow re-trigger
+        setTimeout(() => el.classList.add('in'), baseDelay + i * step);
+      });
+    }
+
+    function initS1() { staggerReveal('#s1', 120, 160); }
+
+    function initS2() {
+      staggerReveal('#s2', 100, 320);
+    }
+
+    function initS3(skipIntro = false) {
+      // Reset duck state
+      stopDucks();
+      document.getElementById('chaos-overlay').classList.remove('in');
+
+      const intro = document.getElementById('s3-intro');
+
+      if (skipIntro) {
+        intro.style.opacity = '0';
+        intro.style.pointerEvents = 'none';
+        setTimeout(fireDucks, 120);
+      } else {
+        intro.style.opacity = '';
+        intro.style.pointerEvents = '';
+        staggerReveal('#s3-intro', 150, 220);
+      }
+    }
+
+    function initS4() {
+      staggerReveal('#s4', 100, 150);
+
+      // Restore selected card if returning
+      if (chosenVenue) {
+        document.querySelectorAll('.card').forEach(card => {
+          const name = card.querySelector('.card-name').textContent.trim();
+          if (name === chosenVenue) card.classList.add('chosen');
+        });
+        setTimeout(() => {
+          document.getElementById('s4-proceed').classList.add('show');
+        }, 800);
+      }
+    }
+
+    function initS5() {
+      // Update venue display
+      const venueEl = document.getElementById('s5-venue');
+      venueEl.textContent = chosenVenue || '—';
+
+      // Reset sequência de confirmação
+      document.getElementById('accepted-msg').classList.remove('in');
+      document.getElementById('accepted-lia').classList.remove('in');
+      document.getElementById('btn-wa-final').classList.remove('show');
+      const confirmBtn = document.getElementById('btn-confirm');
+      confirmBtn.classList.remove('hiding');
+      confirmBtn.style.display = '';
+      const cantEl = document.getElementById('cant-that-day');
+      if (cantEl) cantEl.style.display = '';
+
+      staggerReveal('#s5', 100, 190);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       CARD SELECTION
+    ───────────────────────────────────────────────────── */
+    function pickCard(el, venueName) {
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('chosen'));
+      el.classList.add('chosen');
+      chosenVenue = venueName;
+
+      const btn = document.getElementById('s4-proceed');
+      btn.classList.add('show');
+    }
+
+    /* ─────────────────────────────────────────────────────
+       DUCK ANIMATION
+    ───────────────────────────────────────────────────── */
+    function fireDucks() {
+      if (ducksRunning) return;
+      ducksRunning = true;
+
+      const intro = document.getElementById('s3-intro');
+      intro.style.transition = 'opacity 0.38s ease';
+      intro.style.opacity = '0';
+      intro.style.pointerEvents = 'none';
+
+      const layer = document.getElementById('duck-layer');
+      layer.innerHTML = '';
+
+      // Spawn 50 ducks immediately in rapid bursts
+      for (let i = 0; i < 50; i++) {
+        setTimeout(() => spawnDuck(layer), i * 25 + Math.random() * 15);
+      }
+
+      // Keep spawning batches every 300–500ms until stopped
+      duckInterval = setInterval(() => {
+        if (!ducksRunning) return;
+        if (layer.children.length < MAX_DUCKS) {
+          const batch = 2 + Math.floor(Math.random() * 4);
+          for (let i = 0; i < batch; i++) {
+            setTimeout(() => spawnDuck(layer), i * 80);
+          }
+        }
+      }, 300 + Math.random() * 200);
+
+      // 2s: boss duck crosses + intermediate text
+      setTimeout(() => {
+        spawnBossDuck(layer);
+        const moment = document.getElementById('duck-moment');
+        moment.classList.add('in');
+        // Hide intermediate text after 2.2s
+        setTimeout(() => moment.classList.remove('in'), 2200);
+      }, 2000);
+
+      // 4.4s: reveal final chaos overlay with button
+      setTimeout(() => {
+        document.getElementById('chaos-overlay').classList.add('in');
+      }, 4400);
+    }
+
+    function spawnDuck(layer) {
+      if (layer.children.length >= MAX_DUCKS) return;
+
+      const el = document.createElement('div');
+      el.className = 'dk';
+      el.textContent = '🦆';
+
+      // Size: 0.5x → 2.5x scale (base 2rem)
+      const sizeOptions = [1, 1.5, 2, 2.5, 3, 3.5, 4, 5];
+      const size = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
+      const rot  = (Math.random() - 0.5) * 60;
+      const dur  = 3 + Math.random() * 5;
+      const del  = Math.random() * 0.4;
+      // Opacity variation 0.7–1.0
+      const opa  = 0.7 + Math.random() * 0.3;
+
+      el.style.fontSize   = size * 0.5 + 'rem'; // maps range to ~0.5–2.5rem emoji
+      el.style.setProperty('--r', rot + 'deg');
+      el.style.opacity    = opa;
+
+      const type = Math.random();
+      let infinite = false;
+
+      if (type < 0.32) {
+        // 1. Fall from top
+        el.style.left = (Math.random() * 110 - 5) + 'vw';
+        el.style.top  = '-80px';
+        el.style.animation = `dk-fall ${dur}s ease-in ${del}s both`;
+
+      } else if (type < 0.50) {
+        // 2. Left → right
+        el.style.left = '-90px';
+        el.style.top  = (Math.random() * 95) + 'vh';
+        el.style.animation = `dk-left ${dur}s ease-in-out ${del}s both`;
+
+      } else if (type < 0.67) {
+        // 3. Right → left
+        el.style.right = '-90px';
+        el.style.top   = (Math.random() * 95) + 'vh';
+        el.style.animation = `dk-right ${dur}s ease-in-out ${del}s both`;
+
+      } else if (type < 0.83) {
+        // 4. Drift / float
+        el.style.left = (Math.random() * 90) + 'vw';
+        el.style.top  = (Math.random() * 85) + 'vh';
+        el.style.animation = `dk-drift ${2 + Math.random() * 3}s ease-in-out ${del}s infinite`;
+        infinite = true;
+
+      } else {
+        // 5. Spin / pop
+        el.style.left = (10 + Math.random() * 80) + 'vw';
+        el.style.top  = (10 + Math.random() * 80) + 'vh';
+        el.style.animation = `dk-spin ${dur}s ease-in-out ${del}s both`;
+      }
+
+      layer.appendChild(el);
+
+      // Remove finite ducks after their animation ends
+      if (!infinite) {
+        setTimeout(() => el.remove(), (dur + del + 0.5) * 1000);
+      }
+    }
+
+    function spawnBossDuck(layer) {
+      const el = document.createElement('div');
+      el.className = 'dk';
+      el.textContent = '🦆';
+      el.style.fontSize = '5.5rem';
+      el.style.top = '40vh';
+      el.style.left = '-120px';
+      el.style.setProperty('--r', '-3deg');
+      el.style.zIndex = '22';
+      el.style.animation = 'dk-boss 5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0s both';
+      layer.appendChild(el);
+      setTimeout(() => el.remove(), 5500);
+    }
+
+    function stopDucks() {
+      ducksRunning = false;
+      if (duckInterval) { clearInterval(duckInterval); duckInterval = null; }
+      document.getElementById('duck-layer').innerHTML = '';
+      document.getElementById('duck-moment').classList.remove('in');
+    }
+
+    function watchDucksAgain() {
+      const old = document.getElementById('s' + current);
+      const nxt = document.getElementById('s3');
+
+      old.classList.add('leaving');
+      setTimeout(() => {
+        old.classList.remove('active', 'leaving');
+        nxt.classList.add('active');
+        current = 3;
+        initS3(true); // skip intro → go straight to ducks
+      }, 420);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       WHATSAPP URL DINÂMICA
+    ───────────────────────────────────────────────────── */
+    const waMessages = {
+      'Tempo di Mangiare': 'Fechado! O Tempo di Mangiare me convenceu (e os patos também) 🍝',
+      'Scarpetta Cucina':  'Fechado! O Scarpetta Cucina me convenceu (e os patos também) 🍷',
+      'Freising Bier':     'Fechado! O Freising Bier me convenceu (e os patos também) 🍺',
+    };
+
+    function buildWaUrl() {
+      const msg = waMessages[chosenVenue] || 'aceito sair com você 😌';
+      return 'https://wa.me/5519981898844?text=' + encodeURIComponent(msg);
+    }
+
+    /* ─────────────────────────────────────────────────────
+       CONFIRM SEQUENCE  decisão → validação → emoção → ação
+    ───────────────────────────────────────────────────── */
+    function handleConfirm() {
+      const confirmBtn = document.getElementById('btn-confirm');
+      const cantEl    = document.getElementById('cant-that-day');
+
+      // Etapa 1: fade-out do botão confirmar + "não pode" link
+      confirmBtn.classList.add('hiding');
+      if (cantEl) cantEl.style.display = 'none';
+      setTimeout(() => { confirmBtn.style.display = 'none'; }, 380);
+
+      // Etapa 2: "Boa escolha. Eu já imaginava 😌" — aparece logo após
+      setTimeout(() => {
+        document.getElementById('accepted-msg').classList.add('in');
+      }, 400);
+
+      // Etapa 3: frase da Lia — 800ms depois da mensagem anterior
+      setTimeout(() => {
+        document.getElementById('accepted-lia').classList.add('in');
+      }, 400 + 800);
+
+      // Etapa 4: botão WhatsApp — 1200ms depois da frase da Lia
+      setTimeout(() => {
+        const waBtn = document.getElementById('btn-wa-final');
+        waBtn.href = buildWaUrl();
+        waBtn.classList.add('show');
+      }, 400 + 800 + 1200);
+    }
+
+    function cantThatDay() {
+      const msg = 'sexta não consigo, mas quero sair com você 😄';
+      window.open('https://wa.me/5519981898844?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    }
+
+    /* ─────────────────────────────────────────────────────
+       MUSIC
+    ───────────────────────────────────────────────────── */
+    let musicStarted = false;
+
+    function startMusic() {
+      if (musicStarted) return;
+      musicStarted = true;
+
+      const music = document.getElementById('bg-music');
+      music.volume = 0;
+      music.play().then(() => {
+        // Fade volume from 0 → 0.4 over ~2s
+        let vol = 0;
+        const target = 0.35;
+        const step = target / 40; // 40 steps × 50ms = 2s
+        const fade = setInterval(() => {
+          vol = Math.min(vol + step, target);
+          music.volume = vol;
+          if (vol >= target) clearInterval(fade);
+        }, 50);
+
+        // Show mute button
+        document.getElementById('mute-btn').classList.add('visible');
+      }).catch(() => {
+        // Autoplay blocked — user can still click mute toggle to resume
+      });
+    }
+
+    function toggleMute() {
+      const music = document.getElementById('bg-music');
+      const btn   = document.getElementById('mute-btn');
+      if (music.muted) {
+        music.muted = false;
+        btn.textContent = '🔊';
+      } else {
+        music.muted = true;
+        btn.textContent = '🔇';
+      }
+    }
+
+    /* ─────────────────────────────────────────────────────
+       BOOT
+    ───────────────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+      initS1();
+    });
+  </script>
+</body>
+</html>
